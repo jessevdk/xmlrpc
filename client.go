@@ -9,10 +9,6 @@ import (
 	"net/url"
 )
 
-type Client struct {
-	*rpc.Client
-}
-
 // clientCodec is rpc.ClientCodec interface implementation.
 type clientCodec struct {
 	// url presents url of xmlrpc service
@@ -32,6 +28,24 @@ type clientCodec struct {
 
 	// ready presents channel, that is used to link request and it`s response.
 	ready chan uint64
+}
+
+type Client struct {
+	*rpc.Client
+
+	codec *clientCodec
+}
+
+func (c *Client) CookieHost() string {
+	return c.codec.url.Host
+}
+
+func (c *Client) Cookies() []*http.Cookie {
+	return c.codec.cookies.Cookies(c.codec.url)
+}
+
+func (c *Client) SetCookies(cookies []*http.Cookie) {
+	c.codec.cookies.SetCookies(c.codec.url, cookies)
 }
 
 func (codec *clientCodec) WriteRequest(request *rpc.Request, args interface{}) (err error) {
@@ -140,5 +154,5 @@ func NewClient(requrl string, transport http.RoundTripper) (*Client, error) {
 		cookies:    jar,
 	}
 
-	return &Client{rpc.NewClientWithCodec(&codec)}, nil
+	return &Client{rpc.NewClientWithCodec(&codec), &codec}, nil
 }
